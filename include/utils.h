@@ -2,6 +2,14 @@
 #define _UTILS_H_
 
 #include "config.h"
+#include <string.h>
+#include <errno.h>
+
+#define SYSCALL_ERR_CHECK(expression, function)   \
+    if ((expression) < 0)                         \
+    {                                             \
+        func_err_exit(function, strerror(errno)); \
+    }
 
 __BEGIN_DECLS
 

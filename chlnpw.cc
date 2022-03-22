@@ -3,6 +3,9 @@
 #include <getopt.h>
 #include <pwd.h>
 #include <shadow.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <libgen.h>
 
 #include <cstdlib>
 #include <iomanip>
@@ -10,14 +13,16 @@
 
 int main(int argc, char **argv, char **envp)
 {
-    bool list_users, verbose, list_pwds;
-    int option;
-    std::string algorithm, hash, salt, misc;
+    bool list_users, verbose, list_pwds, create_backup;
+    int option, source_backup_fd, dest_backup_fd;
+    char read_buffer[BUFSIZ];
+    std::string algorithm, hash, salt, misc, dest_filename;
     spwd *sp_ent;
+    ssize_t read_bytes, written_bytes;
 
-    list_users = verbose = list_pwds = false;
+    list_users = verbose = list_pwds = create_backup = false;
 
-    while ((option = getopt(argc, argv, "uvp")) > 0)
+    while ((option = getopt(argc, argv, "uvpb")) > 0)
     {
         switch (option)
         {
@@ -30,10 +35,36 @@ int main(int argc, char **argv, char **envp)
         case 'p':
             list_pwds = true;
             break;
+        case 'b':
+            create_backup = true;
+            break;
         default:
             exit(EXIT_FAILURE);
             break;
         }
+    }
+
+    if (create_backup)
+    {
+        if (optind >= argc)
+            err_exit("No path has been provided");
+
+        std::string temp_dest_filename = argv[optind];
+        dest_filename = basename(&temp_dest_filename[0]);
+        SYSCALL_ERR_CHECK(source_backup_fd = open(argv[optind], O_RDONLY), "open(source_file)");
+        SYSCALL_ERR_CHECK(dest_backup_fd = open(dest_filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY , S_IRUSR | S_IWUSR | S_IRGRP), "open(destination file)");
+
+        while (read_bytes = read(source_backup_fd, read_buffer, BUFSIZ))
+        {
+            SYSCALL_ERR_CHECK(read_bytes, "read(source_file)");
+            written_bytes = write(dest_backup_fd, read_buffer, read_bytes);
+            SYSCALL_ERR_CHECK(written_bytes, "write(destination_file)");
+            if(written_bytes != read_bytes)
+                SYSCALL_ERR_CHECK(-1 , "write(destination file)");
+        }
+
+        SYSCALL_ERR_CHECK(close(source_backup_fd), "close(source_file)");
+        SYSCALL_ERR_CHECK(close(dest_backup_fd), "close(destination_file)");
     }
 
     if (list_users && list_pwds)

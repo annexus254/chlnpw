@@ -82,4 +82,8 @@ typedef enum
 #endif
 #endif
 
+#ifndef BUFSIZ
+#define BUFSIZ 8192
+#endif
+
 #endif //_CONFIG_H_

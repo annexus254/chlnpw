@@ -39,6 +39,9 @@ int write_hash(const char *path, const char *username, const char *hash)
     struct stat shadow_file_stat;
     bool username_found = false;
 
+    if(!is_privileged())
+        func_err_exit("write_hash()" , "You must be root to perform this operation");
+
     SYSCALL_ERR_CHECK(stat(path, &shadow_file_stat), "stat(shadow_file)");
     shadow_line = new char[shadow_file_stat.st_size];
 

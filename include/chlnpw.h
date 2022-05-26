@@ -1,3 +1,5 @@
 #include "config.h"
 #include "utils.h"
 #include "shadow_utils.h"
+#include "hash.h"
+#include "io.h"

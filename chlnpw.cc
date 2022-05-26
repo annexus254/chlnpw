@@ -13,16 +13,17 @@
 
 int main(int argc, char **argv, char **envp)
 {
-    bool list_users, verbose, list_pwds, create_backup;
+    bool list_users, verbose, list_pwds, create_backup, write_passwd;
     int option, source_backup_fd, dest_backup_fd;
     char read_buffer[BUFSIZ];
-    std::string algorithm, hash, salt, misc, dest_filename;
+    std::string path, username, algorithm, hash, salt, misc, dest_filename;
     spwd *sp_ent;
     ssize_t read_bytes, written_bytes;
+    hash_result *hash_struct;
 
-    list_users = verbose = list_pwds = create_backup = false;
+    list_users = verbose = list_pwds = create_backup = write_passwd = false;
 
-    while ((option = getopt(argc, argv, "uvpb")) > 0)
+    while ((option = getopt(argc, argv, "uvpbw")) > 0)
     {
         switch (option)
         {
@@ -38,6 +39,9 @@ int main(int argc, char **argv, char **envp)
         case 'b':
             create_backup = true;
             break;
+        case 'w':
+            write_passwd = true;
+            break;
         default:
             exit(EXIT_FAILURE);
             break;
@@ -52,19 +56,37 @@ int main(int argc, char **argv, char **envp)
         std::string temp_dest_filename = argv[optind];
         dest_filename = basename(&temp_dest_filename[0]);
         SYSCALL_ERR_CHECK(source_backup_fd = open(argv[optind], O_RDONLY), "open(source_file)");
-        SYSCALL_ERR_CHECK(dest_backup_fd = open(dest_filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY , S_IRUSR | S_IWUSR | S_IRGRP), "open(destination file)");
+        SYSCALL_ERR_CHECK(dest_backup_fd = open(dest_filename.c_str(), O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP), "open(destination file)");
 
-        while (read_bytes = read(source_backup_fd, read_buffer, BUFSIZ))
+        while ((read_bytes = read(source_backup_fd, read_buffer, BUFSIZ)))
         {
             SYSCALL_ERR_CHECK(read_bytes, "read(source_file)");
             written_bytes = write(dest_backup_fd, read_buffer, read_bytes);
             SYSCALL_ERR_CHECK(written_bytes, "write(destination_file)");
-            if(written_bytes != read_bytes)
-                SYSCALL_ERR_CHECK(-1 , "write(destination file)");
+            if (written_bytes != read_bytes)
+                SYSCALL_ERR_CHECK(-1, "write(destination file)");
         }
 
         SYSCALL_ERR_CHECK(close(source_backup_fd), "close(source_file)");
         SYSCALL_ERR_CHECK(close(dest_backup_fd), "close(destination_file)");
+    }
+
+    if (write_passwd)
+    {
+        if ((argc - optind) < 4)
+        {
+            print_usage_info(EXIT_FAILURE);
+        }
+        else if ((argc - optind) == 4)
+            hash_struct = gen_hash(argv[optind + 3], argv[optind + 2], NULL);
+        else
+            hash_struct = gen_hash(argv[optind + 3], argv[optind + 2], argv[optind + 4]);
+
+        if (hash_struct->result_code != 0)
+            func_err_exit("gen_hash()", hash_struct->hash);
+
+        if( write_hash(argv[optind] , argv[optind + 1], hash_struct->hash) != 0)
+            func_err_exit("write_hash()", "No such user");
     }
 
     if (list_users && list_pwds)

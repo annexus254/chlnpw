@@ -2,6 +2,7 @@ CC					=	cc
 CXX					=	c++
 CXXFLAGS			=	-O3 -Wall -Wpedantic -std=c++17
 CCFLAGS				=	-O3 -Wall -Wpedantic -std=c17
+EXT_LIBS			=	-lcrypt
 
 LIB_HEADERS			=	$(wildcard include/*.h)
 LIB_SOURCES_C		=	$(wildcard src/*.c)
@@ -20,7 +21,7 @@ MAIN_PROG			=	bin/chlnpw
 all:	$(MAIN_PROG)
 
 $(MAIN_PROG): $(MAIN_OBJECT) $(LIB_OBJECTS_C) $(LIB_OBJECTS_CXX)
-	$(CXX) $(MAIN_OBJECT) $(LIB_OBJECTS_C) $(LIB_OBJECTS_CXX) -o $(MAIN_PROG)
+	$(CXX) $(MAIN_OBJECT) $(LIB_OBJECTS_C) $(LIB_OBJECTS_CXX) $(EXT_LIBS) -o $(MAIN_PROG)
 
 $(LIB_OBJECTS_C):
 	$(CC) $(CCFLAGS) -c $(LIB_SOURCES_C)

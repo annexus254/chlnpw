@@ -1,6 +1,6 @@
 .vscode/
-bin/
-objects/
+bin/*
+objects/*
 
 # Prerequisites
 *.d

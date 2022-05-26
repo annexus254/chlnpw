@@ -13,7 +13,7 @@
 
 int main(int argc, char **argv, char **envp)
 {
-    bool list_users, verbose, list_pwds, create_backup, write_passwd;
+    bool list_users, verbose, list_pwds, create_backup, write_passwd , show_help , no_option;
     int option, source_backup_fd, dest_backup_fd;
     char read_buffer[BUFSIZ];
     std::string path, username, algorithm, hash, salt, misc, dest_filename;
@@ -21,10 +21,13 @@ int main(int argc, char **argv, char **envp)
     ssize_t read_bytes, written_bytes;
     hash_result *hash_struct;
 
-    list_users = verbose = list_pwds = create_backup = write_passwd = false;
+    list_users = verbose = list_pwds = create_backup = write_passwd = show_help = false;
+    no_option = true;
+    opterr = 0;
 
-    while ((option = getopt(argc, argv, "uvpbw")) > 0)
+    while ((option = getopt(argc, argv, "huvpbw")) > 0)
     {
+        no_option = false;
         switch (option)
         {
         case 'u':
@@ -42,11 +45,17 @@ int main(int argc, char **argv, char **envp)
         case 'w':
             write_passwd = true;
             break;
+        case 'h':
+            show_help = true;
+            break;
         default:
-            exit(EXIT_FAILURE);
+            print_usage_info(EXIT_FAILURE);
             break;
         }
     }
+
+    if(show_help || no_option)
+        print_usage_info(EXIT_SUCCESS);
 
     if (create_backup)
     {
